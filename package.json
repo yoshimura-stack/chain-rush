@@ -1,14 +1,11 @@
 {
-  "name": "chain-rush-skybound",
-  "version": "0.13.0",
-  "type": "module",
+  "name": "chain-rush-deploy",
+  "version": "0.13.1",
   "private": true,
-  "description": "CHAIN RUSH 1-7 human realtime multiplayer foundation",
   "scripts": {
-    "build": "esbuild source/main.js --bundle --format=iife --minify --target=chrome100 --legal-comments=inline --outfile=game.js",
-    "test": "node tests/flow.test.mjs && node tests/multiplayer.test.mjs"
+    "deploy": "wrangler deploy"
   },
   "devDependencies": {
-    "esbuild": "0.25.0"
+    "wrangler": "^4.0.0"
   }
 }
