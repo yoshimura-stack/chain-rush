@@ -13,14 +13,14 @@ const scene=new T.Scene();scene.fog=new T.FogExp2(0xb9d7df,.00115);
 const world=new T.Group();scene.add(world);
 const camera=new T.PerspectiveCamera(50,innerWidth/innerHeight,.15,2600);
 const renderer=new T.WebGLRenderer({antialias:true,powerPreference:'high-performance',alpha:false});
-renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));
+renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(1);
 renderer.outputColorSpace=T.SRGBColorSpace;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.08;
 renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;
 $('game').appendChild(renderer.domElement);
 renderer.domElement.addEventListener('webglcontextlost',e=>{e.preventDefault();$('loadtext').textContent='3D描画が中断されました。ほかのタブを閉じて、このページを再読み込みしてください。';$('loading').classList.remove('ready')});
 const hemi=new T.HemisphereLight(0xc8e5ff,0x716242,1.65);scene.add(hemi);
 const sun=new T.DirectionalLight(0xffe3b0,3.65);sun.position.set(-48,70,28);sun.target.position.set(0,0,-30);scene.add(sun,sun.target);
-sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-47,right:47,top:48,bottom:-45,near:1,far:190});sun.shadow.normalBias=.07;sun.shadow.bias=-.0001;
+sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);Object.assign(sun.shadow.camera,{left:-47,right:47,top:48,bottom:-45,near:1,far:190});sun.shadow.normalBias=.07;sun.shadow.bias=-.0001;
 const rim=new T.DirectionalLight(0xc5eaff,1.38);rim.position.set(30,30,-70);scene.add(rim);
 const uniforms={time:{value:0}};
 
@@ -219,10 +219,10 @@ function obstacle(e){const g=new T.Group();g.position.z=3.5-e.at;world.add(g);
  obstacles.push({g,event:e,label});
 }
 courseDefinition.forEach(obstacle);
-for(const o of obstacles){if(['rock','movingLog'].includes(o.event.type))continue;const batches=new Map();for(const child of [...o.g.children]){if(!child.isMesh)continue;child.updateMatrix();const geo=(child.geometry.index?child.geometry.toNonIndexed():child.geometry.clone()).applyMatrix4(child.matrix);if(!batches.has(child.material))batches.set(child.material,[]);batches.get(child.material).push(geo);o.g.remove(child)}for(const [material,geos] of batches){const mesh=new T.Mesh(mergeGeometries(geos,false),material);mesh.castShadow=mesh.receiveShadow=true;o.g.add(mesh);geos.forEach(g=>g.dispose())}}
+for(const o of obstacles){if(['rock','movingLog'].includes(o.event.type))continue;const batches=new Map();for(const child of [...o.g.children]){if(!child.isMesh)continue;child.updateMatrix();const geo=(child.geometry.index?child.geometry.toNonIndexed():child.geometry.clone()).applyMatrix4(child.matrix);if(!batches.has(child.material))batches.set(child.material,[]);batches.get(child.material).push(geo);o.g.remove(child)}for(const [material,geos] of batches){const mesh=new T.Mesh(mergeGeometries(geos,false),material);mesh.castShadow=false;mesh.receiveShadow=true;o.g.add(mesh);geos.forEach(g=>g.dispose())}}
 
 // Finalize all immobile meshes into material batches.
-for(const [material,geometries] of pools){const g=mergeGeometries(geometries,false);if(!g)throw new Error('Geometry merge failed');const m=new T.Mesh(g,material);m.castShadow=material!==rockMat&&material!==leaves;m.receiveShadow=true;world.add(m);geometries.forEach(g=>g.dispose())}pools.clear();
+for(const [material,geometries] of pools){const g=mergeGeometries(geometries,false);if(!g)throw new Error('Geometry merge failed');const m=new T.Mesh(g,material);m.castShadow=false;m.receiveShadow=true;world.add(m);geometries.forEach(g=>g.dispose())}pools.clear();
 
 const colors=['#2899d1','#efba3a','#e968a6','#c83c30','#43924d','#d57b2f','#9365b7'];
 const players=[];const loader=new GLTFLoader();
@@ -255,7 +255,7 @@ function makeCharacter(gltf,i){const model=cloneSkeleton(gltf.scene);const group
 // Verlet ropes: fixed waist endpoints, gravity, length constraints, visible woven tubes.
 const ropes=[];const ropeMaterial=mat(0xe1c284,{map:ropeTex,roughness:.92});
 function makeRope(a,b){const N=17,R=7,verts=(N+1)*(R+1),g=new T.BufferGeometry();g.setAttribute('position',new T.BufferAttribute(new Float32Array(verts*3),3));g.setAttribute('normal',new T.BufferAttribute(new Float32Array(verts*3),3));const uv=[],indices=[];
- for(let i=0;i<=N;i++)for(let j=0;j<=R;j++){uv.push(i/N,j/R);if(i<N&&j<R){const k=i*(R+1)+j;indices.push(k,k+R+1,k+1,k+1,k+R+1,k+R+2)}}g.setAttribute('uv',new T.Float32BufferAttribute(uv,2));g.setIndex(indices);const m=new T.Mesh(g,ropeMaterial.clone());m.castShadow=true;m.frustumCulled=false;scene.add(m);const pts=[],prev=[];for(let i=0;i<=N;i++){const p=new T.Vector3().lerpVectors(a.group.position,b.group.position,i/N);p.y=1.90-Math.sin(i/N*Math.PI)*.4;pts.push(p);prev.push(p.clone())}ropes.push({m,pts,prev,a,b,N,R,slot:a.index});}
+ for(let i=0;i<=N;i++)for(let j=0;j<=R;j++){uv.push(i/N,j/R);if(i<N&&j<R){const k=i*(R+1)+j;indices.push(k,k+R+1,k+1,k+1,k+R+1,k+R+2)}}g.setAttribute('uv',new T.Float32BufferAttribute(uv,2));g.setIndex(indices);const m=new T.Mesh(g,ropeMaterial.clone());m.castShadow=false;m.frustumCulled=false;scene.add(m);const pts=[],prev=[];for(let i=0;i<=N;i++){const p=new T.Vector3().lerpVectors(a.group.position,b.group.position,i/N);p.y=1.90-Math.sin(i/N*Math.PI)*.4;pts.push(p);prev.push(p.clone())}ropes.push({m,pts,prev,a,b,N,R,slot:a.index});}
 function updateRopes(dt){for(const r of ropes){const {pts,prev,N,R,a,b}=r;const start=a.group.position.clone().add(new T.Vector3(.32,a.waist||1.91,0)),end=b.group.position.clone().add(new T.Vector3(-.32,b.waist||1.91,0));const d=start.distanceTo(end);const tension=mode==='stuck'&&(a.playerId===game.stuckPlayerId||b.playerId===game.stuckPlayerId);const length=tension?Math.max(3.6,d*1.006):Math.max(3.55,d*1.075);
  for(let i=1;i<N;i++){const p=pts[i],old=p.clone();p.addScaledVector(v3.subVectors(p,prev[i]),.985);p.y-=10*dt*dt;p.z+=Math.sin(elapsed*3+i*.6)*dt*dt*.5;prev[i].copy(old)}
  for(let k=0;k<9;k++){pts[0].copy(start);pts[N].copy(end);for(let i=0;i<N;i++){const delta=v3.subVectors(pts[i+1],pts[i]);const dist=delta.length();const correction=(dist-length/N)/Math.max(dist,.00001);if(i>0)pts[i].addScaledVector(delta,correction*.5);if(i+1<N)pts[i+1].addScaledVector(delta,-correction*.5)}}pts[0].copy(start);pts[N].copy(end);
@@ -341,7 +341,7 @@ function clearInputs(){heldKeys.clear();heldPointers.clear();runner.release();se
 function pause(){if(matchLocked&&!isHost)return;clearInputs();game.togglePause();forceStateSend=true;sendState(true);document.body.classList.remove('hud-off')}
 $('start').onclick=startRun;$('pause').onclick=pause;$('resume').onclick=pause;$('restart').onclick=resetRun;$('again').onclick=resetRun;
 $('hide').onclick=()=>document.body.classList.add('hud-off');$('restore').onclick=()=>document.body.classList.remove('hud-off');
-$('quality').onchange=()=>{const q=$('quality').value;renderer.setPixelRatio(q==='low'?1:q==='high'?Math.min(devicePixelRatio,2):Math.min(devicePixelRatio,1.35));renderer.shadowMap.enabled=q!=='low'};
+$('quality').onchange=()=>{const q=$('quality').value;renderer.setPixelRatio(q==='high'?Math.min(devicePixelRatio,1.25):1);renderer.shadowMap.enabled=q!=='low'};
 const actionButtons=[...document.querySelectorAll('[data-action]')];
 for(const b of actionButtons){const a=b.dataset.action;b.addEventListener('pointerdown',e=>{e.preventDefault();b.setPointerCapture?.(e.pointerId);heldPointers.set(e.pointerId,a);if(a==='jump')runner.jump();syncInputs()});for(const type of ['pointerup','pointercancel','lostpointercapture'])b.addEventListener(type,e=>{heldPointers.delete(e.pointerId);syncInputs()});b.addEventListener('click',e=>{if(e.detail===0&&a==='jump')runner.jump()})}
 $('islandBefore').onclick=()=>setIslandVersion(false);$('islandAfter').onclick=()=>setIslandVersion(true);

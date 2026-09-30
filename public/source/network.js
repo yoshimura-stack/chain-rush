@@ -9,7 +9,7 @@ export class ChainNetwork{
   this.clientId=randomId();
   this.joinedAt=now()+Math.random();
   this.name='PLAYER';this.ready=false;this.room='';this.mode='local';this.hostPriority=1;this.channel=null;this.client=null;this.bc=null;
-  this.peers=new Map();this.listeners={roster:new Set(),event:new Set(),status:new Set()};this.heartbeat=null;this.closed=false;
+  this.peers=new Map();this.listeners={roster:new Set(),event:new Set(),status:new Set()};this.heartbeat=null;this.presenceHeal=null;this.closed=false;
  }
  on(type,fn){this.listeners[type]?.add(fn);return()=>this.listeners[type]?.delete(fn)}
  emit(type,data){for(const fn of this.listeners[type]||[])try{fn(data)}catch(e){console.error(e)}}
@@ -23,10 +23,12 @@ export class ChainNetwork{
   const c=this.config;this.client=window.supabase.createClient(c.supabaseUrl,c.supabaseAnonKey,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false},realtime:{params:{eventsPerSecond:40}}});
   this.channel=this.client.channel(`chain-rush:${this.room}`,{config:{broadcast:{self:true,ack:false},presence:{key:this.clientId}}});
   this.channel.on('presence',{event:'sync'},()=>this.syncSupabasePresence());
+  this.channel.on('presence',{event:'join'},()=>this.syncSupabasePresence());
+  this.channel.on('presence',{event:'leave'},()=>this.syncSupabasePresence());
   this.channel.on('broadcast',{event:'chain'},msg=>this.receiveEvent(msg.payload));
-  await new Promise((resolve,reject)=>{let done=false;const t=setTimeout(()=>{if(!done)reject(new Error('Supabase接続がタイムアウトしました。'))},10000);this.channel.subscribe(async status=>{this.emit('status',{mode:'supabase',status});if(status==='SUBSCRIBED'&&!done){done=true;clearTimeout(t);await this.track();resolve()}if(status==='CHANNEL_ERROR'&&!done){done=true;clearTimeout(t);reject(new Error('Supabase Realtimeへ接続できませんでした。'))}})});
+  await new Promise((resolve,reject)=>{let done=false;const t=setTimeout(()=>{if(!done)reject(new Error('Supabase接続がタイムアウトしました。'))},10000);this.channel.subscribe(async status=>{this.emit('status',{mode:'supabase',status});if(status==='SUBSCRIBED'&&!done){done=true;clearTimeout(t);await this.track();this.syncSupabasePresence();setTimeout(()=>this.syncSupabasePresence(),250);setTimeout(()=>this.syncSupabasePresence(),900);this.presenceHeal=setInterval(()=>this.syncSupabasePresence(),2000);resolve()}if(status==='CHANNEL_ERROR'&&!done){done=true;clearTimeout(t);reject(new Error('Supabase Realtimeへ接続できませんでした。'))}})});
  }
- async track(){if(!this.channel)return;await this.channel.track({playerId:this.clientId,name:this.name,joinedAt:this.joinedAt,hostPriority:this.hostPriority,ready:this.ready,version:'0.13'});}
+ async track(){if(!this.channel)return;await this.channel.track({playerId:this.clientId,name:this.name,joinedAt:this.joinedAt,hostPriority:this.hostPriority,ready:this.ready,version:'0.13.2'});}
  syncSupabasePresence(){if(!this.channel)return;const state=this.channel.presenceState();const list=[];for(const metas of Object.values(state))for(const m of metas||[])if(m?.playerId)list.push({playerId:m.playerId,name:cleanName(m.name),joinedAt:Number(m.joinedAt)||now(),hostPriority:Number.isFinite(Number(m.hostPriority))?Number(m.hostPriority):1,ready:!!m.ready});this.applyRoster(list)}
  async joinLocal(){
   this.bc=new BroadcastChannel(`chain-rush:${this.room}`);this.bc.onmessage=e=>this.receiveLocal(e.data);this.peers.clear();this.touchSelf();this.bc.postMessage({type:'hello',from:this.clientId,ts:now()});this.bc.postMessage({type:'presence',peer:this.selfMeta(),ts:now()});
@@ -49,7 +51,7 @@ export class ChainNetwork{
  send(kind,payload={}){if(!this.room)return;const packet={kind,payload,from:this.clientId,ts:now()};if(this.mode==='supabase')return this.channel?.send({type:'broadcast',event:'chain',payload:packet});this.bc?.postMessage({type:'event',packet,from:this.clientId});this.receiveEvent(packet)}
  receiveEvent(packet){if(!packet?.kind)return;this.emit('event',packet)}
  async leave(){
-  if(this.heartbeat){clearInterval(this.heartbeat);this.heartbeat=null}if(this.bc){try{this.bc.postMessage({type:'leave',from:this.clientId,ts:now()});this.bc.close()}catch{}this.bc=null}
+  if(this.heartbeat){clearInterval(this.heartbeat);this.heartbeat=null}if(this.presenceHeal){clearInterval(this.presenceHeal);this.presenceHeal=null}if(this.bc){try{this.bc.postMessage({type:'leave',from:this.clientId,ts:now()});this.bc.close()}catch{}this.bc=null}
   if(this.channel){try{await this.channel.untrack()}catch{}try{await this.client?.removeChannel(this.channel)}catch{}this.channel=null}this.client=null;this.peers.clear();this.room='';
  }
 }
