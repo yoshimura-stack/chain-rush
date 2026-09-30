@@ -1,0 +1,20 @@
+{
+  "version": "0.13.0",
+  "status": "PASS",
+  "checks": {
+    "legacy_flow_regression": "PASS",
+    "runner_motion": "PASS",
+    "dynamic_slot_offsets_3_and_7_players": "PASS",
+    "pose_collision_helpers": "PASS",
+    "local_realtime_presence_3_clients": "PASS",
+    "ready_sync_3_clients": "PASS",
+    "creator_host_priority": "PASS",
+    "javascript_syntax": "PASS",
+    "html_required_ids": "PASS"
+  },
+  "not_tested": [
+    "Supabase multi-PC browser session",
+    "real network latency and packet loss",
+    "company PC GPU/rendering performance"
+  ]
+}

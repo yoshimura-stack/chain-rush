@@ -1,0 +1,14 @@
+{
+  "name": "chain-rush-skybound",
+  "version": "0.13.0",
+  "type": "module",
+  "private": true,
+  "description": "CHAIN RUSH 1-7 human realtime multiplayer foundation",
+  "scripts": {
+    "build": "esbuild source/main.js --bundle --format=iife --minify --target=chrome100 --legal-comments=inline --outfile=game.js",
+    "test": "node tests/flow.test.mjs && node tests/multiplayer.test.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.0"
+  }
+}

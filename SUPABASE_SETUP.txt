@@ -1,0 +1,16 @@
+CHAIN RUSH V0.13 / 最短マルチPC接続
+
+1) Supabase Dashboardで既存または新規Projectを開く
+2) Project URL と anon key / publishable key を確認
+3) config.js の2箇所へ貼り付ける
+   supabaseUrl: 'https://xxxxx.supabase.co'
+   supabaseAnonKey: 'xxxxx'
+4) CHAIN_RUSH_V0.13_MULTIPLAYER フォルダの中身をCloudflare Pagesへ公開
+5) PC-AでURLを開く → 名前 →「新しいROOMを作る」
+6) PC-B/Cで同じURL → 名前 → ROOM ID入力 →「参加」
+7) 全員READY
+8) HOSTがSTART
+
+SQL実行は不要です。
+画面のROOM欄が「SUPABASE REALTIME」なら複数PCモードです。
+「LOCAL TAB MODE」ならconfig.jsが未設定、Supabase library未読込、または接続設定が無効です。
